@@ -53,19 +53,19 @@ local function smashWindow(vehicle)
     StartVehicleAlarm(vehicle)
 
 
-    if math.random(1, 2) == 1 then
+    if math.random(1, 2) == 1 or 2 then
         local vehicleCoords = GetEntityCoords(vehicle)
         exports['bub-mdt']:CustomAlert({
             coords = vec3(vehicleCoords.x, vehicleCoords.y, vehicleCoords.z),
             info = {
-                {
-                    label = framework.getPlayerGender(),
-                    icon = 'gender-bigender',
-                },
+                --{
+                --    label = 'Test',
+                --    icon = 'gender-bigender',
+                --},
             },
             code = '10-90',
             offense = 'Vehicle Break-in',
-            blip = 310,
+            blip = 465,
         })
     end
 
