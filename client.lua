@@ -1,9 +1,29 @@
 local packageModel = `prop_cs_package_01`
+local angryPedModel = `a_m_m_hillbilly_02`
+
+local function spawnAngryPed(playerPos)
+    RequestModel(angryPedModel)
+    while not HasModelLoaded(angryPedModel) do
+        Citizen.Wait(100)
+    end
+
+    local spawnPos = playerPos + vector3(math.random(-40, 40), math.random(-40, 40), 0)
+    local groundZ = GetGroundZFor_3dCoord(spawnPos.x, spawnPos.y, spawnPos.z, false)
+    local ped = CreatePed(4, angryPedModel, spawnPos.x, spawnPos.y, groundZ, 0.0, true, true)
+    
+    TaskGoToEntity(ped, PlayerPedId(), -1, 3.0, 2.0, 0, 0)
+    SetPedCombatAttributes(ped, 46, true)
+    SetPedCombatAbility(ped, 2)
+    SetPedCombatMovement(ped, 3)
+    SetPedCombatRange(ped, 2)
+    SetPedCanRagdoll(ped, true)
+    GiveWeaponToPed(ped, `WEAPON_UNARMED`, 1, false, true)
+    SetEntityAsMissionEntity(ped, true, true)
+    SetPedFleeAttributes(ped, 0, false)
+end
 
 local function smashWindow(vehicle)
     local playerPed = PlayerPedId()
-
-    SetVehicleDoorsLocked(vehicle, 2)
 
     local rearRightDoorBone = GetEntityBoneIndexByName(vehicle, "door_pside_r")
     local rearLeftDoorBone = GetEntityBoneIndexByName(vehicle, "door_dside_r")
@@ -17,70 +37,53 @@ local function smashWindow(vehicle)
     local distToLeftDoor = #(playerPos - leftDoorPos)
 
     local targetDoorPos
-    local windowIndex
+    local doorIndex
 
     if distToLeftDoor < distToRightDoor then
         targetDoorPos = leftDoorPos
-        windowIndex = 2  
+        doorIndex = 2
     else
         targetDoorPos = rightDoorPos
-        windowIndex = 3  
+        doorIndex = 3
     end
 
-    -- Spawn package inside the car
+    SetVehicleDoorsLocked(vehicle, 7)
+    TaskEnterVehicle(playerPed, vehicle, 2000, doorIndex, 1.0, 1, 0)
+    Citizen.Wait(2000)
+    ClearPedTasksImmediately(playerPed)
+
+    StartVehicleAlarm(vehicle)
+
     local pos = GetEntityCoords(vehicle)
     local boneIndex = GetEntityBoneIndexByName(vehicle, "seat_dside_r")
     local package = CreateObject(packageModel, pos.x, pos.y, pos.z, true, true, true)
     AttachEntityToEntity(package, vehicle, boneIndex, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, false, false, true, false, 2, true)
 
-    Citizen.Wait(1000)
-
-    FreezeEntityPosition(playerPed, true) 
-
-    RequestAnimDict("veh@break_in@0h@p_m_one@")
-    while not HasAnimDictLoaded("veh@break_in@0h@p_m_one@") do
-        Citizen.Wait(100)
-    end
-
-    TaskPlayAnim(playerPed, "veh@break_in@0h@p_m_one@", "low_force_entry_ds", 8.0, -8.0, 2000, 48, 0, false, false, false)
-
-    Citizen.Wait(3000)
-
-    SmashVehicleWindow(vehicle, windowIndex)
-
-    FreezeEntityPosition(playerPed, false)
-
-    StartVehicleAlarm(vehicle)
-
-
-    if math.random(1, 2) == 1 or 2 then
+    if math.random(1, 2) == 1 then
         local vehicleCoords = GetEntityCoords(vehicle)
         exports['bub-mdt']:CustomAlert({
             coords = vec3(vehicleCoords.x, vehicleCoords.y, vehicleCoords.z),
-            info = {
-                --{
-                --    label = 'Test',
-                --    icon = 'gender-bigender',
-                --},
-            },
+            info = {},
             code = '10-90',
             offense = 'Vehicle Break-in',
             blip = 465,
         })
     end
 
+    if math.random(1, 2) == 1 then
+        spawnAngryPed(playerPos)
+    end
+
     TaskStartScenarioInPlace(playerPed, "PROP_HUMAN_BUM_BIN", 0, true)
     Citizen.Wait(5000)
     ClearPedTasksImmediately(playerPed)
-
     DeleteEntity(package)
-
     TriggerServerEvent('package_theft:givePackage')
 end
 
 local function playBreakInMinigame(vehicle)
     local success = false
-    success = lib.skillCheck({'easy', 'easy', 'medium'}, {'w', 'a', 's', 'd'})
+    success = lib.skillCheck({'easy', 'easy', 'easy'}, {'w', 'a', 's', 'd'})
 
     if success then
         smashWindow(vehicle)
@@ -99,7 +102,7 @@ exports.ox_target:addGlobalVehicle({
     {
         name = 'smash_window',
         icon = 'fa-solid fa-hand-fist',
-        label = 'Sno paket',
+        label = 'Steal package',
         bones = { 'door_dside_r', 'door_pside_r' },
         onSelect = function(data)
             local vehicle = data.entity
