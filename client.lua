@@ -10,16 +10,28 @@ local function spawnAngryPed(playerPos)
     local spawnPos = playerPos + vector3(math.random(-40, 40), math.random(-40, 40), 0)
     local groundZ = GetGroundZFor_3dCoord(spawnPos.x, spawnPos.y, spawnPos.z, false)
     local ped = CreatePed(4, angryPedModel, spawnPos.x, spawnPos.y, groundZ, 0.0, true, true)
-    
-    TaskGoToEntity(ped, PlayerPedId(), -1, 3.0, 2.0, 0, 0)
+
+    local playerPed = PlayerPedId()
+
+    SetPedRelationshipGroupHash(ped, GetHashKey("HATES_PLAYER"))
+
     SetPedCombatAttributes(ped, 46, true)
     SetPedCombatAbility(ped, 2)
     SetPedCombatMovement(ped, 3)
     SetPedCombatRange(ped, 2)
-    SetPedCanRagdoll(ped, true)
-    GiveWeaponToPed(ped, `WEAPON_UNARMED`, 1, false, true)
+
+    GiveWeaponToPed(ped, GetHashKey("WEAPON_BAT"), 250, false, true)
+
+    TaskCombatPed(ped, playerPed, 0, 16)
+
     SetEntityAsMissionEntity(ped, true, true)
-    SetPedFleeAttributes(ped, 0, false)
+
+    SetModelAsNoLongerNeeded(angryPedModel)
+end
+
+local function triggerCarAlarm(vehicle)
+    SetVehicleAlarm(vehicle, true)
+    StartVehicleAlarm(vehicle)
 end
 
 local function smashWindow(vehicle)
@@ -52,14 +64,14 @@ local function smashWindow(vehicle)
     Citizen.Wait(2000)
     ClearPedTasksImmediately(playerPed)
 
-    StartVehicleAlarm(vehicle)
+    triggerCarAlarm(vehicle)
 
     local pos = GetEntityCoords(vehicle)
     local boneIndex = GetEntityBoneIndexByName(vehicle, "seat_dside_r")
-    local package = CreateObject(packageModel, pos.x, pos.y, pos.z, true, true, true)
-    AttachEntityToEntity(package, vehicle, boneIndex, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, false, false, true, false, 2, true)
+    --local package = CreateObject(packageModel, pos.x, pos.y, pos.z, true, true, true)
+    --AttachEntityToEntity(package, vehicle, boneIndex, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, false, false, true, false, 2, true)
 
-    if math.random(1, 2) == 1 then
+    if math.random(1, 2) == 1 or 2 then
         local vehicleCoords = GetEntityCoords(vehicle)
         exports['bub-mdt']:CustomAlert({
             coords = vec3(vehicleCoords.x, vehicleCoords.y, vehicleCoords.z),
@@ -70,14 +82,15 @@ local function smashWindow(vehicle)
         })
     end
 
-    if math.random(1, 2) == 1 then
+
+    if math.random(1, 2) == 1 or 2 then
         spawnAngryPed(playerPos)
     end
 
     TaskStartScenarioInPlace(playerPed, "PROP_HUMAN_BUM_BIN", 0, true)
     Citizen.Wait(5000)
     ClearPedTasksImmediately(playerPed)
-    DeleteEntity(package)
+    --DeleteEntity(package)
     TriggerServerEvent('package_theft:givePackage')
 end
 
@@ -102,7 +115,7 @@ exports.ox_target:addGlobalVehicle({
     {
         name = 'smash_window',
         icon = 'fa-solid fa-hand-fist',
-        label = 'Steal package',
+        label = 'Sno paket',
         bones = { 'door_dside_r', 'door_pside_r' },
         onSelect = function(data)
             local vehicle = data.entity
